@@ -10,7 +10,7 @@ good_mount() {
 }
 
 good_user() {
-  return [ "$EUID" == "0" ] && [ "$UID" != "0" ] \
+  [ "$EUID" == "0" ] && [ "$UID" != "0" ] \
       && [ "$USER" != "root" ] && [ "$USER" != "" ] \
       && [ "$HOME" != "/root" ] && [ "$HOME" != "/" ] && [ "$HOME" != "" ] \
       && [ "$DUID" == "$UID" ]
