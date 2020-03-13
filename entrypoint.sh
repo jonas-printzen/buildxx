@@ -1,41 +1,44 @@
 #!/usr/bin/env bash
 
-# Get ownership on mounted(?) directory
-DUID=$(ls -nd|cut -d' ' -f3)
-DGID=$(ls -nd|cut -d' ' -f4)
+WORKDIR=$PWD
+
+USER=$(basename $HOME)
+
+# We expect $HOME to be mounted
+DUID=$(ls -nd $HOME|cut -d' ' -f3)
+DGID=$(ls -nd $HOME|cut -d' ' -f4)
 
 good_mount() {
-  [ "$DUID" != "0" ] && [ "$DGID" != "0" ] && \
-  [ "${BUILD_DIR##$HOME}" != $BUILD_DIR ]
+  [ "$DUID" != "0" ] && [ "$DGID" != "0" ]
 }
 
 good_user() {
-  [ "$EUID" == "0" ] && [ "$UID" != "0" ] \
+  [ "$EUID" == "0" ] && [ "$DUID" != "0" ] \
       && [ "$USER" != "root" ] && [ "$USER" != "" ] \
-      && [ "$HOME" != "/root" ] && [ "$HOME" != "/" ] && [ "$HOME" != "" ] \
-      && [ "$DUID" == "$UID" ]
+      && [ "$HOME" != "/root" ] && [ "$HOME" != "/" ] && [ "$HOME" != "" ]
 }
 
 assert_user() {
   if ! id $USER >/dev/null 2>&1; then
     groupadd -g $DGID build
-    useradd -d $HOME -u $UID -g $DGID $USER
+    useradd -d $HOME -u $DUID -g $DGID $USER
     if ! [ -d $(dirname $HOME) ]; then
       mkdir -p $(dirname $HOME)
     fi
-    ln -s /srv/work $HOME
   fi
   return 0
 }
 
 # Detect usage case
 if ! good_mount; then
-  cat /srv/invoke.sh | sed "s#@IMAGE@#$BUILD_IMAGE#g"
+  cat /srv/invoke.sh | sed "s#@IMAGE@#$DOCKER_IMAGE#g"
   exit
 fi
 
 # Detect command case
-if assert_user; then
-  cd $BUILD_DIR
-  sudo -u $USER $@
+if ! assert_user; then
+  echo "Failed to mirror user $USER in container!"
+  exit 1
 fi
+
+echo "$@" | sudo -u $USER bash -l

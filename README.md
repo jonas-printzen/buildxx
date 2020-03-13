@@ -2,16 +2,18 @@
 
 ## Outline
 
-This is an attempt to collect everything I need to build software
-in a docker image. The image will be executed instead of running __make__
-when developing. As an added value exactly the same image will be used in build-automation.
+This is everything needed to build software with a docker image. 
+The image will be executed instead of running __make__ when developing. 
+By putting the toolchain in the image you don't need it installed locally.
+You also get perfect history and control of the toolchain.
+As an added value, exactly the same image can be used in build-automation.
 
  ><big>__Note!__</big>
  >This image exposes your entire $HOME directory to make sure any
- >caching directories and personal configuration (.m2,.netrc) is persistent!
+ >caching directories and personal configuration (.m2,.netrc) can be used!
  >If this violates your sense of security, don't use this image!
 
-Firstly, when invoked without proper arguments, it provides a shell-script
+Firstly, when invoked without the proper arguments, it provides a shell-script
 to use for proper invocation.
 
 ```sh
@@ -19,10 +21,9 @@ $> docker run --rm pzen/buildxx
 #!/usr/bin/env bash
 #
 #  INVOKE USING THIS SCRIPT!
-docker container run --rm -v$HOME:/srv/work \
-                     -eUSER=$USER -eUID=$UID \
-                     -eHOME=$HOME -eBUILD_DIR=$PWD\
-                     pzen/buildxx "$@"
+
+docker run --rm -eUSER=$USER -eHOME=$HOME\
+                -v$HOME:$HOME -w $PWD @IMAGE@ <your command>
 ```
 
 The easiest way to use this is to put it in a file.
@@ -31,7 +32,7 @@ The easiest way to use this is to put it in a file.
 $> docker run --rm pzen/buildxx >build
 $> chmod +x build
 $> ./build make
-make: Nothing to be done for 'compile'.
+make: *** No targets specified and no makefile found.  Stop.
 ```
 
 To add your own system-level dependencies just create a new image.
